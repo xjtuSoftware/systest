@@ -1391,6 +1391,7 @@ void Encode::buildSynchronizeFormula() {
 		string currCond = it_wait->first;
 		for (unsigned i = 0; i < waitSet.size(); i++) {
 			vector<expr> possibleMap;
+			vector<expr> possibleValue;
 			expr wait = z3_ctx.int_const(waitSet[i]->wait->eventName.c_str());
 			expr lock_wait = z3_ctx.int_const(
 					waitSet[i]->lock_by_wait->eventName.c_str());
@@ -1411,15 +1412,18 @@ void Encode::buildSynchronizeFormula() {
 				//range: p_w_s = 0 or p_w_s = 1
 				expr exprs_2 = map_wait_signal >= 0 && map_wait_signal <= 1;
 
-				possibleMap.push_back(exprs_0 && exprs_1 && exprs_2);
+				possibleMap.push_back(exprs_0 && exprs_1);
+				possibleValue.push_back(exprs_2);
 				//statics
 				formulaNum += 3;
 			}
 			expr one_wait = makeExprsOr(possibleMap);
+			expr wait_value = makeExprsAnd(possibleValue);
 #if FORMULA_DEBUG
 			cerr << one_wait << "\n";
 #endif
 			z3_solver.add(one_wait);
+			z3_solver.add(wait_value);
 		}
 	}
 

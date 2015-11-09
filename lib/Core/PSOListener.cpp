@@ -967,10 +967,10 @@ void PSOListener::afterRunMethodAsMain() {
 		if (executor->execStatus != Executor::SUCCESS) {
 			std::cerr << "######################上述为第" << executor->executionNum << "次执行，执行有错误,放弃####################\n";
 			std::cerr << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
-			executor->isFinished = true;
+//			executor->isFinished = true;
 //			assert(0 && "debug");
-//			executor->execStatus = Executor::IGNOREDERROR;
-//			cbt.computeNewSchedule();
+			executor->execStatus = Executor::IGNOREDERROR;
+			cbt.computeNewSchedule();
 			getNewPrefix();
 		} else if (!rdManager.isCurrentTraceUntested()){
 			rdManager.getCurrentTrace()->traceType = Trace::REDUNDANT;

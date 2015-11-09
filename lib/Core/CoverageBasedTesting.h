@@ -30,21 +30,23 @@ private:
 	unsigned coverageMode;
 	map<string, Event*> latestWriteOneThread;
 
+	Event* currentEvent;
+
 public:
 	CoverageBasedTesting(RuntimeDataManager& data, unsigned crType,
 			unsigned cMode) :
 			runtimeData(data), z3_ctx(data.z3_ctx), z3_solver(data.z3_solver), CRType(
 					crType), coverageMode(cMode) {
 		trace = data.getCurrentTrace();
+		currentEvent = NULL;
 	}
-	;
 	virtual ~CoverageBasedTesting();
 private:
 	void buildDU();
 	void buildMAP();
 	void buildSP();
 	void generateSchedule(vector<Event*>& vecEvent);
-	void coverSingleCR(vector<expr>& exprVec);
+	void coverSingleCR(std::vector<expr>& exprVec, std::vector<DU*>& duInfo);
 	void coverMultipleCR(vector<expr>& exprVec);
 	void markLatestWriteForGlobalVar();
 	void reduceSet(std::map<std::string, std::vector<Event *> >& sourceSet);
@@ -53,6 +55,8 @@ private:
 public:
 	void buildCoverageRequirement();
 	void computeNewSchedule();
+	void setCurrentEvent(Event*);
+	Event* getCurrentEvent();
 };
 
 } /* namespace klee */

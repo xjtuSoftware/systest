@@ -169,7 +169,9 @@ public:
 
   Thread* getNextThread();
 
-  void examineAllThreadFinalState();
+  Thread* getCurrentThread();
+
+  bool examineAllThreadFinalState();
 
   Thread* createThread(KFunction *kf);
 
@@ -194,6 +196,10 @@ public:
   void reSchedule();
 
   void dumpStack(std::ostream &out) const;
+
+  //未实现
+  void switchThreadSchdulerFIFSToRR();
+  void switchThreadSchdulerRRToFIFS();
 
 //  bool isRunnable() {
 //	  return threadState == RUNNABLE;

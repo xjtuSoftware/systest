@@ -17,8 +17,8 @@ namespace klee {
 typedef struct DefineUse {
 	Event* pre; //if=null, stand for initial event.
 	Event* post;
-	int exprIndex;
-	bool flag; //1-covered,0-uncovered
+//	int exprIndex;
+//	bool flag; //1-covered,0-uncovered
 } DU;
 
 typedef struct MultipleAccessPoints {

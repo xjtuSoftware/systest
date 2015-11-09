@@ -3077,7 +3077,13 @@ void Executor::run(ExecutionState &initialState) {
 //			terminateState(state);
 //			break;
 			//assert(0 && "prefix unmatched");
-			std::cerr << "prefix unmatched" << std::endl;
+//			std::cerr << "prefix unmatched" << std::endl;
+
+			prefix->setFinished();
+		}
+
+		if(executionNum > 0 && ki->info->id == prefix->getBreakEventId() ) {
+//			std::cerr << "breakEventId" << ki->info->id << std::endl;
 			prefix->setFinished();
 		}
 
@@ -3087,7 +3093,6 @@ void Executor::run(ExecutionState &initialState) {
 					bitcodeListeners.begin(), bie = bitcodeListeners.end();
 					bit != bie; ++bit) {
 				(*bit)->executeInstruction(state, ki);
-
 			}
 		}
 
@@ -3100,7 +3105,7 @@ void Executor::run(ExecutionState &initialState) {
 		}
 
 		executeInstruction(state, ki);
-//		std::cerr << "line:" << ki->info->line << ", ki->id: " << ki->info->id << std::endl;
+//		std::cerr << "line:" << ki->info->line << ", ki->id: " << ki->info->id << ",  ";
 //		ki->inst->dump();
 
 		if (isSymbolicRun) {
@@ -3841,7 +3846,7 @@ void Executor::executeMemoryOperation(ExecutionState &state, bool isWrite,
 			} else {
 				ref<Expr> result = os->read(mo->getOffsetExpr(address), type);
 				//perhaps have problem
-				bindLocal(target, bound->getNextThread(), result);
+				bindLocal(target, bound->getCurrentThread(), result);
 			}
 		}
 

@@ -27,6 +27,8 @@ private:
 	EventIterator pos;
 	std::string name;
 
+	unsigned breakEventId;
+
 public:
 	Prefix(std::vector<Event*>& eventList, std::map<Event*, uint64_t>& threadIdMap, std::string name);
 	virtual ~Prefix();
@@ -44,6 +46,9 @@ public:
 	void print(llvm::raw_ostream &out);
 	KInstruction* getCurrentInst();
 	std::string getName();
+
+	void setBreakEventId(unsigned& bei);
+	unsigned& getBreakEventId();
 };
 
 } /* namespace klee */

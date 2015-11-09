@@ -26,6 +26,7 @@ class ThreadScheduler {
 public:
 	ThreadScheduler();
 	virtual ~ThreadScheduler();
+	virtual Thread* selectCurrentItem() = 0;
 	virtual Thread* selectNextItem() = 0;
 	virtual void popAllItem(std::vector<Thread*>& allItem) = 0;
 	virtual int itemNum() = 0;
@@ -37,9 +38,42 @@ public:
 	virtual void reSchedule() = 0;
 
 	enum ThreadSchedulerType {
+		RR,
 		FIFS,
 		Preemptive
 	};
+};
+
+/**
+ * RR Scheduler
+ */
+class RRThreadScheduler : public ThreadScheduler {
+private:
+	std::list<Thread*> queue;
+	unsigned int count = 0;
+public:
+	RRThreadScheduler();
+	RRThreadScheduler(RRThreadScheduler& scheduler, std::map<unsigned, Thread*> &threadMap);
+	~RRThreadScheduler();
+	void printName(std::ostream &os) {
+		os << "RR Thread Scheduler\n";
+	}
+
+	Thread* selectCurrentItem();
+	Thread* selectNextItem();
+	void popAllItem(std::vector<Thread*>& allItem);
+	int itemNum();
+	bool isSchedulerEmpty();
+	void addItem(Thread* item);
+	void removeItem(Thread* item);
+	void printAllItem(std::ostream &os);
+	void reSchedule();
+	void setCountZero();
+
+//用于更换调度器调度策略时使用，没有完整写完，故不使用
+//public:
+//	void setRRQueue(std::list<Thread*>& queue);
+//	std::list<Thread*>& getRRQueue();
 };
 
 /**
@@ -56,6 +90,7 @@ public:
 		os << "FIFS Thread Scheduler\n";
 	}
 
+	Thread* selectCurrentItem();
 	Thread* selectNextItem();
 	void popAllItem(std::vector<Thread*>& allItem);
 	int itemNum();
@@ -65,6 +100,10 @@ public:
 	void printAllItem(std::ostream &os);
 	void reSchedule();
 
+	//用于更换调度器调度策略时使用，没有完整写完，故不使用
+//public:
+//	void setFIFSQueue(std::list<Thread*>& queue);
+//	std::list<Thread*>& getFIFSQueue();
 };
 
 class PreemptiveThreadScheduler : public ThreadScheduler {
@@ -79,6 +118,7 @@ public:
 		os << "Preemptive Thread Scheduler\n";
 	}
 
+	Thread* selectCurrentItem();
 	Thread* selectNextItem();
 	void popAllItem(std::vector<Thread*>& allItem);
 	int itemNum();
@@ -104,6 +144,7 @@ public:
 		os << "Guided Thread Scheduler\n";
 	}
 
+	Thread* selectCurrentItem();
 	Thread* selectNextItem();
 	void popAllItem(std::vector<Thread*>& allItem);
 	int itemNum();

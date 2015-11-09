@@ -195,7 +195,7 @@ double WeightedRandomSearcher::getWeight(ExecutionState *es) {
     return es->weight;
   case InstCount: {
     uint64_t count = theStatisticManager->getIndexedValue(stats::instructions,
-                                                          es->getNextThread()->pc->info->id);
+                                                          es->getCurrentThread()->pc->info->id);
     double inv = 1. / std::max((uint64_t) 1, count);
     return inv * inv;
   }

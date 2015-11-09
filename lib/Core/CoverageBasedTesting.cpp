@@ -50,8 +50,8 @@ void CoverageBasedTesting::buildDU() {
 
 	assert(trace->readSet.size() != 0 && "readSet is empty");
 	markLatestWriteForGlobalVar();
-	reduceSet(trace->readSet);
-	reduceSet(trace->writeSet);
+//	reduceSet(trace->readSet);
+//	reduceSet(trace->writeSet);
 
 	std::map<string, vector<Event *> >::iterator ir = trace->readSet.begin(); //key--variable
 	for (; ir != trace->readSet.end(); ir++) {
@@ -79,12 +79,12 @@ void CoverageBasedTesting::buildDU() {
 //				std::cerr << "debug1" << std::endl;
 //				std::cerr << def_use_order << std::endl;
 //				std::cerr << currentRead->toString() << std::endl;
-#if DEBUG
-				DU* du = new DU;
+#if !DEBUG
+				DefineUse* du = new DefineUse;
 				du->pre = NULL;
 				du->post = currentRead;
-				du->exprIndex = runtimeData.DUExpr.size();
-				du->flag = false;
+//				du->exprIndex = runtimeData.DUExpr.size();
+//				du->flag = false;
 				runtimeData.DUInfo.push_back(du);
 #endif
 			} else {
@@ -111,12 +111,12 @@ void CoverageBasedTesting::buildDU() {
 //					std::cerr << currentWrite->toString() << std::endl;
 //					std::cerr << currentRead->toString() << std::endl;
 					//use to debug
-#if DEBUG
+#if !DEBUG
 					DefineUse* du = new DefineUse;
 					du->pre = currentWrite;
 					du->post = currentRead;
-					du->exprIndex = runtimeData.DUExpr.size();
-					du->flag = false;
+//					du->exprIndex = runtimeData.DUExpr.size();
+//					du->flag = false;
 					runtimeData.DUInfo.push_back(du);
 #endif
 				}
@@ -348,16 +348,16 @@ void CoverageBasedTesting::buildCoverageRequirement() {
 void CoverageBasedTesting::computeNewSchedule() {
 //Schedule which covers kinds of coverage requirement
 	if (coverageMode == 1) { //Def-Use1 and Single CR
-		coverSingleCR(runtimeData.DUExpr);
+		coverSingleCR(runtimeData.DUExpr, runtimeData.DUInfo);
 //		nonCR();
 	} else if (coverageMode == 2) { //Def-Use1 and multiple CR
 		coverMultipleCR(runtimeData.DUExpr);
 	} else if (coverageMode == 3) { //Def-Use2 and Single CR
-		coverSingleCR(runtimeData.MAPExpr);
+//		coverSingleCR(runtimeData.MAPExpr);
 	} else if (coverageMode == 4) { //Def-Use2 and multiple CR
 		coverMultipleCR(runtimeData.MAPExpr);
 	} else if (coverageMode == 5) { //Synchronize Pair and Single CR
-		coverSingleCR(runtimeData.SPExpr);
+//		coverSingleCR(runtimeData.SPExpr);
 	} else if (coverageMode == 6) { //Synchronize Pair and multiple CR
 		coverMultipleCR(runtimeData.SPExpr);
 	} else {
@@ -431,13 +431,23 @@ void CoverageBasedTesting::nonCR(){
 	}
 }
 
-void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec) {
+void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec, std::vector<DU*>& duInfo) {
 	std::cerr << "Create New Prefix, Cover Single CR" << std::endl;
 	std::cerr << "cr set size: " << exprVec.size() << std::endl;
+	std::cerr << "du set size: " << duInfo.size() << std::endl;
 	std::vector<expr>::iterator it = exprVec.begin();
+
+	std::vector<DU*>::iterator itDU = duInfo.begin();
+//	std::vector<DU*>::iterator itDU = runtimeData.DUInfo.begin();
+
 	while (it != exprVec.end()) {
 		std::cerr << "the Def-Use constraint:" << std::endl;
 		std::cerr << *it << "\n" << std::endl;
+//		std::cerr << (*itDU)->pre->eventName << "  " << (*itDU)->pre->toString() << std::endl;
+//		std::cerr << (*itDU)->post->eventName << "  " << (*itDU)->post->toString() << std::endl;
+
+//		std::cerr << (*itDU)->pre->eventName << "  " << (*itDU)->pre->inst->info->id << std::endl;
+//		std::cerr << (*itDU)->post->eventName << "  " << (*itDU)->post->inst->info->id << std::endl;
 		z3_solver.push();
 		z3_solver.add(*it);
 
@@ -459,13 +469,18 @@ void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec) {
 				assert(false && "z3 exception");
 			}
 			Prefix* prefix = new Prefix(vecEvent, trace->createThreadPoint, "");
+			std::cerr <<"eventName: " << (*itDU)->post->eventName << "  unsigned : " << (*itDU)->post->inst->info->id << std::endl;
+			unsigned br = (*itDU)->post->inst->info->id;
+			prefix->setBreakEventId(br);
 //			prefix->print(std::cerr);
 			runtimeData.addScheduleSet(prefix);
 			it = exprVec.erase(it);
+			itDU = duInfo.erase(itDU);
 			z3_solver.pop();
 			return;
 		}
 		it = exprVec.erase(it);
+		itDU = duInfo.erase(itDU);
 		std::cerr << "delete\n" << std::endl;
 		z3_solver.pop();
 	}
@@ -508,7 +523,12 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 			z3_solver.pop();
 		}
 	}
-	assert(cnt != 0 && "No useful CR left");
+//	assert(cnt != 0 && "No useful CR left");
+	if (cnt == 0){
+		Prefix* prefix = NULL;
+		runtimeData.addScheduleSet(prefix);
+		return;
+	}
 
 	check_result result;
 	try {
@@ -609,6 +629,14 @@ void CoverageBasedTesting::reduceSet(std::map<std::string, std::vector<Event *> 
 		}
 		it++;
 	}
+}
+
+void CoverageBasedTesting::setCurrentEvent(Event* event){
+	this->currentEvent = event;
+}
+
+Event* CoverageBasedTesting::getCurrentEvent(){
+	return this->currentEvent;
 }
 
 } /* namespace klee */

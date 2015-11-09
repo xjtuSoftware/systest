@@ -1,4 +1,9 @@
 eclipse.preferences.version=1
+environment/project/cdt.managedbuild.toolchain.gnu.base.1479990212/LLVM/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.1479990212/LLVM/operation=append
+environment/project/cdt.managedbuild.toolchain.gnu.base.1479990212/LLVM/value=/home/hhfan/klee/llvm-3.3/Release+Asserts/lib
+environment/project/cdt.managedbuild.toolchain.gnu.base.1479990212/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.1479990212/appendContributed=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/LLVM/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/LLVM/operation=replace
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/LLVM/value=/home/hhfan/klee/llvm-3.3/Release+Asserts/lib

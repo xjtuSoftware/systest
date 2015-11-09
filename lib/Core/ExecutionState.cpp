@@ -101,6 +101,7 @@ ExecutionState::ExecutionState(KFunction *kf)
     //ptreeNode(0)
 	{
 
+//	threadScheduler = getThreadSchedulerByType(ThreadScheduler::RR);
 	threadScheduler = getThreadSchedulerByType(ThreadScheduler::FIFS);
 	//threadScheduler = getThreadSchedulerByType(ThreadScheduler::Preemptive);
 	Thread* thread = new Thread(Thread::getNextThreadId(), NULL, &addressSpace, kf);
@@ -121,6 +122,7 @@ ExecutionState::ExecutionState(KFunction *kf, Prefix* prefix)
     //ptreeNode(0)
 	{
 
+//	threadScheduler = new GuidedThreadScheduler(this, ThreadScheduler::RR, prefix);
 	threadScheduler = new GuidedThreadScheduler(this, ThreadScheduler::FIFS, prefix);
 	//threadScheduler = new GuidedThreadScheduler(this, ThreadScheduler::Preemptive, prefix);
 	Thread* thread = new Thread(Thread::getNextThreadId(), NULL, &addressSpace, kf);
@@ -423,16 +425,27 @@ Thread* ExecutionState::findThreadById(unsigned threadId) {
 	return threadList.findThreadById(threadId);
 }
 
-Thread* ExecutionState::getNextThread() {
+Thread* ExecutionState::getCurrentThread() {
 	if (!threadScheduler->isSchedulerEmpty()) {
-		currentThread = threadScheduler->selectNextItem();
+		currentThread = threadScheduler->selectCurrentItem();
 	} else {
 		currentThread = NULL;
 	}
 	return currentThread;
 }
 
-void ExecutionState::examineAllThreadFinalState() {
+Thread* ExecutionState::getNextThread() {
+	Thread* nextThread;
+	if (!threadScheduler->isSchedulerEmpty()) {
+		nextThread = threadScheduler->selectNextItem();
+	} else {
+		nextThread = NULL;
+	}
+	currentThread = nextThread;
+	return nextThread;
+}
+
+bool ExecutionState::examineAllThreadFinalState() {
 	bool isAllThreadFinished = true;
 	for (ThreadList::iterator ti = threadList.begin(), te = threadList.end(); ti != te; ti++) {
 		Thread* thread = *ti;
@@ -441,7 +454,7 @@ void ExecutionState::examineAllThreadFinalState() {
 		if (!thread->isTerminated()) {
 			isAllThreadFinished = false;
 			Instruction* inst = thread->prevPC->inst;
-			std::cerr << "thread" << thread->threadId << " unable to finish successfully, final state is " << thread->threadState << std::endl;
+			std::cerr << "thread " << thread->threadId << " unable to finish successfully, final state is " << thread->threadState << std::endl;
 			std::cerr << "function = " << inst->getParent()->getParent()->getName().str() << std::endl;
 			if (MDNode *mdNode = inst->getMetadata("dbg")) {
 				DILocation loc(mdNode);                  // DILocation is in DebugInfo.h
@@ -454,7 +467,7 @@ void ExecutionState::examineAllThreadFinalState() {
 		}
 	}
 	threadScheduler->printAllItem(std::cerr);
-//	assert(isAllThreadFinished);
+	return isAllThreadFinished;
 }
 
 Thread* ExecutionState::createThread(KFunction *kf) {

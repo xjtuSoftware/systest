@@ -26,6 +26,7 @@ Prefix::Prefix(vector<Event*>& eventList, std::map<Event*, uint64_t>& threadIdMa
 	  name(name){
 	// TODO Auto-generated constructor stub
 	pos = this->eventList.begin();
+	breakEventId = -1;
 }
 
 void Prefix::reuse(){
@@ -117,6 +118,14 @@ KInstruction* Prefix::getCurrentInst() {
 }
 std::string Prefix::getName(){
 	return name;
+}
+
+void Prefix::setBreakEventId(unsigned& be){
+	breakEventId = be;
+}
+
+unsigned& Prefix::getBreakEventId(){
+	return breakEventId;
 }
 
 } /* namespace klee */

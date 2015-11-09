@@ -8,6 +8,7 @@
 #include "ThreadScheduler.h"
 #include "Executor.h"
 #include "klee/ExecutionState.h"
+#define MAXINST 1000
 
 using namespace::std;
 
@@ -16,16 +17,21 @@ namespace klee {
 ThreadScheduler* getThreadSchedulerByType(ThreadScheduler::ThreadSchedulerType type) {
 	ThreadScheduler* scheduler;
 	switch (type) {
-	case ThreadScheduler::FIFS: {
-		scheduler = new FIFSThreadScheduler();
-		break;
-	}
-
-	case ThreadScheduler::Preemptive: {
-		scheduler = new PreemptiveThreadScheduler();
-		break;
-	}
-
+		case ThreadScheduler::RR: {
+			scheduler = new RRThreadScheduler();
+			break;
+		}
+		case ThreadScheduler::FIFS: {
+			scheduler = new FIFSThreadScheduler();
+			break;
+		}
+		case ThreadScheduler::Preemptive: {
+			scheduler = new PreemptiveThreadScheduler();
+			break;
+		}
+		default: {
+			assert("ThreadSchedulerType error");
+		}
 	}
 
 	return scheduler;
@@ -40,6 +46,107 @@ ThreadScheduler::~ThreadScheduler() {
 	// TODO Auto-generated destructor stub
 }
 
+
+/*
+ * RR Thread Scheduler
+ */
+
+
+RRThreadScheduler::RRThreadScheduler() {
+
+}
+
+//拷贝构造，没用
+RRThreadScheduler::RRThreadScheduler(RRThreadScheduler& scheduler, map<unsigned, Thread*> &threadMap) {
+	for (list<Thread*>::iterator ti = scheduler.queue.begin(), te = scheduler.queue.end(); ti != te; ti++) {
+		queue.push_back(threadMap[(*ti)->threadId]);
+	}
+}
+
+RRThreadScheduler::~RRThreadScheduler() {
+
+}
+
+//考虑使用迭代器而不是front();
+Thread* RRThreadScheduler::selectCurrentItem() {
+	return queue.front();
+}
+
+Thread* RRThreadScheduler::selectNextItem() {
+	if (count > MAXINST) {
+		reSchedule();
+	}
+	count++;
+	Thread* thread = queue.front();
+	return queue.front();
+}
+
+void RRThreadScheduler::popAllItem(vector<Thread*>& allItem) {
+	allItem.reserve(queue.size());
+	for (list<Thread*>::iterator ti = queue.begin(), te = queue.end(); ti != te; ti++) {
+		allItem.push_back(*ti);
+	}
+	queue.clear();
+}
+
+int RRThreadScheduler::itemNum() {
+	return queue.size();
+}
+
+bool RRThreadScheduler::isSchedulerEmpty() {
+	return queue.empty();
+}
+
+void RRThreadScheduler::addItem(Thread* item) {
+	queue.push_back(item);
+}
+
+void RRThreadScheduler::removeItem(Thread* item) {
+	for (list<Thread*>::iterator ti = queue.begin(), te = queue.end(); ti!= te; ti++) {
+		if (*ti == item) {
+			queue.erase(ti);
+			break;
+		}
+	}
+}
+
+void RRThreadScheduler::printAllItem(ostream &os) {
+	for (list<Thread*>::iterator ti = queue.begin(), te = queue.end(); ti!= te; ti++) {
+		Thread* thread = *ti;
+		os << thread->threadId << " state: " << thread->threadState << " current inst: " << thread->pc->inst->getOpcodeName() << " ";
+		if (thread->threadState == Thread::TERMINATED) {
+			KInstruction* ki = thread->pc;
+			os << ki->info->file << " " << ki->info->line;
+		}
+		os << endl;
+	}
+}
+
+void RRThreadScheduler::reSchedule() {
+	Thread* thread = queue.front();
+	queue.pop_front();
+	queue.push_back(thread);
+	count = 0;
+}
+
+void RRThreadScheduler::setCountZero() {
+	count = 0;
+}
+
+//void RRThreadScheduler::setRRQueue(std::list<Thread*>& queue){
+//	this->queue = queue;
+//}
+//
+//std::list<Thread*>& RRThreadScheduler::getRRQueue(){
+//	return this->queue;
+//}
+
+
+
+/*
+ * FIFS Thread Scheduler
+ */
+
 FIFSThreadScheduler::FIFSThreadScheduler() {
 
 }
@@ -52,6 +159,10 @@ FIFSThreadScheduler::FIFSThreadScheduler(FIFSThreadScheduler& scheduler, map<uns
 
 FIFSThreadScheduler::~FIFSThreadScheduler() {
 
+}
+
+Thread* FIFSThreadScheduler::selectCurrentItem() {
+	return selectNextItem();
 }
 
 Thread* FIFSThreadScheduler::selectNextItem() {
@@ -105,6 +216,20 @@ void FIFSThreadScheduler::reSchedule() {
 	queue.push_back(thread);
 }
 
+//void FIFSThreadScheduler::setFIFSQueue(std::list<Thread*>& queue){
+//	this->queue = queue;
+//}
+//
+//std::list<Thread*>& FIFSThreadScheduler::getFIFSQueue(){
+//	return this->queue;
+//}
+
+
+/*
+ * Preemptive Thread Scheduler
+ */
+
+
 PreemptiveThreadScheduler::PreemptiveThreadScheduler() {
 
 }
@@ -117,6 +242,10 @@ PreemptiveThreadScheduler::PreemptiveThreadScheduler(PreemptiveThreadScheduler& 
 
 PreemptiveThreadScheduler::~PreemptiveThreadScheduler() {
 
+}
+
+Thread* PreemptiveThreadScheduler::selectCurrentItem() {
+	return selectNextItem();
 }
 
 Thread* PreemptiveThreadScheduler::selectNextItem() {
@@ -172,6 +301,13 @@ void PreemptiveThreadScheduler::reSchedule() {
 	queue.insert(ti, thread);
 }
 
+
+
+
+/*
+ * Guided Thread Scheduler
+ */
+
 GuidedThreadScheduler::GuidedThreadScheduler(ExecutionState* state, ThreadSchedulerType schedulerType, Prefix* prefix)
 	: prefix(prefix),
 	  state(state) {
@@ -180,6 +316,10 @@ GuidedThreadScheduler::GuidedThreadScheduler(ExecutionState* state, ThreadSchedu
 
 GuidedThreadScheduler::~GuidedThreadScheduler() {
 	delete subScheduler;
+}
+
+Thread* GuidedThreadScheduler::selectCurrentItem() {
+	return selectNextItem();
 }
 
 Thread* GuidedThreadScheduler::selectNextItem() {
