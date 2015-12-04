@@ -40,6 +40,7 @@ Event::Event(unsigned threadId, unsigned eventId, string eventName, KInstruction
 	 globalVarFullName(globalVarFullName),
 	 eventType(eventType),
 	 latestWrite(NULL),
+	 latestRead(NULL),
 	 isGlobal(false),
 	 isLocal(false),
 	 isConditionIns(false),

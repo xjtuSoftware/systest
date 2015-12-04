@@ -25,8 +25,8 @@ typedef struct MultipleAccessPoints {
 	Event* pre;
 	Event* mid;
 	Event* post;
-	int exprIndex;
-	bool flag; //1-covered,0-uncovered
+//	int exprIndex;
+//	bool flag; //1-covered,0-uncovered
 } MAP;
 
 typedef struct SynchronizePair {
@@ -63,6 +63,7 @@ public:
 	std::vector<expr> MAPExpr;
 	std::vector<SP*> SPInfo;
 	std::vector<expr> SPExpr;
+	std::vector<Event*> correlativeEvent;
 
 public:
 

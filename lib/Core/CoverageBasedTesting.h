@@ -29,6 +29,7 @@ private:
 	unsigned CRType;
 	unsigned coverageMode;
 	map<string, Event*> latestWriteOneThread;
+	map<string, Event*> latestReadOneThread;
 
 	Event* currentEvent;
 
@@ -46,19 +47,26 @@ private:
 	void buildMAP();
 	void buildSP();
 	void generateSchedule(vector<Event*>& vecEvent);
-	void coverSingleCR(std::vector<expr>& exprVec, std::vector<DU*>& duInfo);
+	void coverSingleCR(std::vector<expr>& exprVec, std::vector<Event*>& correlativeEvent);
 	void coverMultipleCR(vector<expr>& exprVec);
 	void markLatestWriteForGlobalVar();
+	void markLatestReadOrWriteForGlobalVar();
+	void sortGlobalSet(std::map<std::string, std::vector<Event *> >& sourceSet);
 	void reduceSet(std::map<std::string, std::vector<Event *> >& sourceSet);
 
 	void nonCR();
+	void selectCRSet(std::vector<expr>& sourceSet);
+	void addAllCR(std::vector<expr>& exprVec);
+
+	void makeFullExprForRWR(std::map<string, std::vector<Event*> >::iterator, std::vector<Event*>::iterator);
+	void makeFullExprForWWR(std::map<string, std::vector<Event*> >::iterator, std::vector<Event*>::iterator);
 public:
 	void buildCoverageRequirement();
 	void computeNewSchedule();
 	void setCurrentEvent(Event*);
 	Event* getCurrentEvent();
 };
-
+	bool less_tid(const Event * lEvent, const Event* rEvent);
 } /* namespace klee */
 
 #endif /* COVERAGEBASEDTESTING_H_ */

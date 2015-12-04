@@ -955,7 +955,7 @@ void PSOListener::afterRunMethodAsMain() {
 	double cost = (double) (finish.tv_sec * 1000000UL + finish.tv_usec
 			- start.tv_sec * 1000000UL - start.tv_usec) / 1000000UL;
 	rdManager.addStaticsInfo(0.0, cost, 0, 0);
-	CoverageBasedTesting cbt(rdManager, 1, 1);
+	CoverageBasedTesting cbt(rdManager, 2, 3);
 
 //	Trace* trace = rdManager.getCurrentTrace();
 //	std::cerr << "print all event:\n";

@@ -101,7 +101,7 @@ namespace {
   cl::opt<bool>
   UseCallPaths("use-call-paths",
                cl::desc("Enable calltree tracking for instruction level statistics"),
-               cl::init(true));
+               cl::init(false));
   
 }
 

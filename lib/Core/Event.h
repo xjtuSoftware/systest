@@ -66,6 +66,7 @@ public:
 	std::string globalVarFullName; //globalVarName + the read / write sequence
 	EventType eventType;
 	Event * latestWrite; //the latest write event in the same thread
+	Event * latestRead; //the latest write event in the same thread
 	bool isGlobal; // is global variable  load, store, call strcpy in these three instruction this attribute will be assigned
 	bool isLocal; // is local variable load, store, call strcpy in these three instruction this attribute will be assigned
 	bool isConditionIns; // is this event associated with a Br which has two targets
