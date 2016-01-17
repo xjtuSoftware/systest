@@ -2,7 +2,7 @@
  * CoverageBasedTesting.h
  *
  *  Created on: Sep 27, 2015
- *      Author: xdzhang
+ *      Author: x
  */
 
 #ifndef COVERAGEBASEDTESTING_H_
@@ -14,6 +14,8 @@
 #include <stack>
 #include <vector>
 #include <utility>
+#include <algorithm>
+#include <functional>
 
 using namespace llvm;
 using namespace z3;
@@ -34,14 +36,9 @@ private:
 	Event* currentEvent;
 
 public:
-	CoverageBasedTesting(RuntimeDataManager& data, unsigned crType,
-			unsigned cMode) :
-			runtimeData(data), z3_ctx(data.z3_ctx), z3_solver(data.z3_solver), CRType(
-					crType), coverageMode(cMode) {
-		trace = data.getCurrentTrace();
-		currentEvent = NULL;
-	}
+	CoverageBasedTesting(RuntimeDataManager& data, unsigned crType, unsigned cMode);
 	virtual ~CoverageBasedTesting();
+
 private:
 	void buildDU();
 	void buildMAP();
@@ -66,7 +63,12 @@ public:
 	void setCurrentEvent(Event*);
 	Event* getCurrentEvent();
 };
-	bool less_tid(const Event * lEvent, const Event* rEvent);
+
+
+	bool less_tid(const Event * lEvent, const Event*);
+	void printOpSet(std::map<std::string, std::vector<Event*> >&);
+	void printOpSetBriefly(std::map<std::string, std::vector<Event*> >&);
+	template <class T> struct displayVector;
 } /* namespace klee */
 
 #endif /* COVERAGEBASEDTESTING_H_ */

@@ -955,7 +955,7 @@ void PSOListener::afterRunMethodAsMain() {
 	double cost = (double) (finish.tv_sec * 1000000UL + finish.tv_usec
 			- start.tv_sec * 1000000UL - start.tv_usec) / 1000000UL;
 	rdManager.addStaticsInfo(0.0, cost, 0, 0);
-	CoverageBasedTesting cbt(rdManager, 2, 3);
+	CoverageBasedTesting cbt(rdManager, 1, 1);
 
 //	Trace* trace = rdManager.getCurrentTrace();
 //	std::cerr << "print all event:\n";
@@ -965,8 +965,8 @@ void PSOListener::afterRunMethodAsMain() {
 
 	if (executor->isSymbolicRun == 0) {
 		if (executor->execStatus != Executor::SUCCESS) {
-			std::cerr << "######################上述为第" << executor->executionNum << "次执行，执行有错误,放弃####################\n";
-			std::cerr << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
+			std::cout << "\n######################上述为第" << executor->executionNum << "次执行，执行有错误,放弃####################\n";
+			std::cout << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
 //			executor->isFinished = true;
 //			assert(0 && "debug");
 			executor->execStatus = Executor::IGNOREDERROR;
@@ -974,8 +974,8 @@ void PSOListener::afterRunMethodAsMain() {
 			getNewPrefix();
 		} else if (!rdManager.isCurrentTraceUntested()){
 			rdManager.getCurrentTrace()->traceType = Trace::REDUNDANT;
-			std::cerr << "######################上述为第" << executor->executionNum << "次执行，执行正确####################\n";
-			std::cerr << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
+			std::cout << "\n######################上述为第" << executor->executionNum << "次执行，执行正确####################\n";
+			std::cout << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
 			cbt.computeNewSchedule();
 			getNewPrefix();
 		} else {
@@ -987,7 +987,7 @@ void PSOListener::afterRunMethodAsMain() {
 		Encode encode(rdManager, rdManager.z3_ctx, rdManager.z3_solver);
 		encode.buildAllFormula();
 		cbt.buildCoverageRequirement();
-		std::cerr << "######################下面开始第" << executor->executionNum + 1<< "次执行####################\n";
+		std::cout << "######################下面开始第" << executor->executionNum + 1<< "次执行####################\n";
 		cbt.computeNewSchedule();
 		getNewPrefix();
 	}

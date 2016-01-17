@@ -9,3 +9,8 @@ environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/LLVM/operatio
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/LLVM/value=/home/hhfan/klee/llvm-3.3/Release+Asserts/lib
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/append=true
 environment/project/cdt.managedbuild.toolchain.gnu.base.1528799893/appendContributed=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.608975235/LLVM/delimiter=\:
+environment/project/cdt.managedbuild.toolchain.gnu.base.608975235/LLVM/operation=replace
+environment/project/cdt.managedbuild.toolchain.gnu.base.608975235/LLVM/value=/home/hhfan/klee/llvm-3.3/Release+Asserts/lib
+environment/project/cdt.managedbuild.toolchain.gnu.base.608975235/append=true
+environment/project/cdt.managedbuild.toolchain.gnu.base.608975235/appendContributed=true

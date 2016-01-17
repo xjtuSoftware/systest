@@ -103,6 +103,9 @@ using namespace llvm;
 using namespace klee;
 
 #define CONSTANT 0
+#define PRINT_INSTRUCTION 1
+#define PRINT_STORE_VALUE 1
+#define PRINT_LOAD_VALUE 1
 
 #ifdef SUPPORT_METASMT
 
@@ -2058,7 +2061,9 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
 		ref<Expr> base = eval(ki, 1, thread).value;
 //    	base->dump();
 		ref<Expr> value = eval(ki, 0, thread).value;
-//		std::cerr<<"store value : "<< value <<std::endl;
+#if PRINT_STORE_VALUE
+		std::cout<<"store value : "<< value <<std::endl;
+#endif
 		executeMemoryOperation(state, true, base, value, 0);
 		//handle mutex and condition created by malloc
 		Type* valueTy = ki->inst->getOperand(0)->getType();
@@ -3105,9 +3110,10 @@ void Executor::run(ExecutionState &initialState) {
 		}
 
 		executeInstruction(state, ki);
-//		std::cerr << "line:" << ki->info->line << ", ki->id: " << ki->info->id << ",  ";
-//		ki->inst->dump();
-
+#if PRINT_INSTRUCTION
+		std::cout << "line:" << ki->info->line << ", thread->id: " << thread->threadId << ",  ";
+		ki->inst->dump();
+#endif
 		if (isSymbolicRun) {
 			for (std::vector<BitcodeListener*>::iterator bit =
 					bitcodeListeners.begin(), bie = bitcodeListeners.end();
@@ -3806,7 +3812,9 @@ void Executor::executeMemoryOperation(ExecutionState &state, bool isWrite,
 				if (interpreterOpts.MakeConcreteSymbolic)
 					result = replaceReadWithSymbolic(state, result);
 				bindLocal(target, state.currentThread, result);
-//				std::cerr<<"load value : "<< result <<std::endl;
+#if PRINT_LOAD_VALUE
+				std::cout<<"load value : "<< result <<std::endl;
+#endif
 			}
 
 			return;

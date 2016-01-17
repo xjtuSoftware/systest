@@ -2,32 +2,57 @@
  * CoverageBasedTesting.cpp
  *
  *  Created on: Sep 27, 2015
- *      Author: xdzhang
+ *      Author: x
  */
 
 #include "CoverageBasedTesting.h"
 #include "KQuery2Z3.h"
 #include <map>
 #include <vector>
-#include <algorithm>
 using namespace std;
 using namespace llvm;
 using namespace z3;
 #include "Trace.h"
 #include "Encode.h"
 #define DEBUG 0
+#define PRINT_OPERATION_SET_DETAILED 0
+#define PRINT_OPERATION_SET_BRIEFLY 1
+#define PRINT_DEF_USE 1
 namespace klee {
+
+CoverageBasedTesting::CoverageBasedTesting(RuntimeDataManager& data, unsigned crType,
+		unsigned cMode) :
+		runtimeData(data), z3_ctx(data.z3_ctx), z3_solver(data.z3_solver), CRType(
+				crType), coverageMode(cMode) {
+	trace = data.getCurrentTrace();
+	currentEvent = NULL;
+}
 
 CoverageBasedTesting::~CoverageBasedTesting() {
 	// TODO Auto-generated destructor stub
 }
 
 void CoverageBasedTesting::buildDU() {
-	std::cerr << "read set size:" << trace->readSet.size() << std::endl;
-	std::cerr << "write set size:" << trace->writeSet.size() << std::endl;
+
+	std::cout << "read set size:" << trace->readSet.size() << std::endl;
+	std::cout << "write set size:" << trace->writeSet.size() << std::endl;
+
+#if PRINT_OPERATION_SET_DETAILED
+	std::cout << "print readSet(detailed):" << std::endl;
+	printOpSet(trace->readSet);
+	std::cout << "print writeSet(detailed):" << std::endl;
+	printOpSet(trace->writeSet);
+#endif
+
+#if PRINT_OPERATION_SET_BRIEFLY
+	std::cout << "print readSet(briefly):" << std::endl;
+	printOpSetBriefly(trace->readSet);
+	std::cout << "print writeSet(briefly):" << std::endl;
+	printOpSetBriefly(trace->writeSet);
+#endif
+
 	assert(trace->readSet.size() != 0 && "readSet is empty");
 	markLatestWriteForGlobalVar();
-
 //	reduceSet(trace->readSet);
 //	reduceSet(trace->writeSet);
 
@@ -35,45 +60,45 @@ void CoverageBasedTesting::buildDU() {
 	std::map<string, vector<Event *> >::iterator iRead = trace->readSet.begin();
 	std::map<string, vector<Event *> >::iterator iWrite = trace->writeSet.begin();
 	while(iRead != trace->readSet.end()){
-		std::cerr << "read event:" << iRead->first << std::endl;
+		std::cout << "read event:" << iRead->first << std::endl;
 		std::vector<Event*>::iterator irEvent = iRead->second.begin();
 		while(irEvent != iRead->second.end()){
-			std::cerr << (*irEvent)->toString() << std::endl;
+			std::cout << (*irEvent)->toString() << std::endl;
 			if((*irEvent)->latestWrite != NULL)
-				std::cerr << "LatestWrite: " << (*irEvent)->latestWrite->eventId << " ;" << (*irEvent)->latestWrite->eventName << std::endl;
+				std::cout << "LatestWrite: " << (*irEvent)->latestWrite->eventId << " ;" << (*irEvent)->latestWrite->eventName << std::endl;
 			else
-				std::cerr << "LatestWrite: " << "NULL" << std::endl;
+				std::cout << "LatestWrite: " << "NULL" << std::endl;
 
 			if((*irEvent)->latestRead !=NULL)
-				std::cerr << "LatestRead: " << (*irEvent)->latestRead->eventId << " ;" << (*irEvent)->latestRead->eventName << std::endl;
+				std::cout << "LatestRead: " << (*irEvent)->latestRead->eventId << " ;" << (*irEvent)->latestRead->eventName << std::endl;
 			else
-				std::cerr << "LatestRead: " << "NULL" << std::endl;
+				std::cout << "LatestRead: " << "NULL" << std::endl;
 
-			std::cerr << std::endl;
+			std::cout << std::endl;
 			irEvent++;
 		}
 		iRead++;
 	}
 
 	while(iWrite != trace->writeSet.end()){
-		std::cerr << "write event:" << iWrite->first << std::endl;
+		std::cout << "write event:" << iWrite->first << std::endl;
 		std::vector<Event*>::iterator iwEvent = iWrite->second.begin();
 		while(iwEvent != iWrite->second.end()){
-			std::cerr << (*iwEvent)->toString() << std::endl;
-//			std::cerr << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
-//			std::cerr << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
+			std::cout << (*iwEvent)->toString() << std::endl;
+//			std::cout << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
+//			std::cout << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
 
 			if((*iwEvent)->latestWrite != NULL)
-							std::cerr << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
+							std::cout << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
 						else
-							std::cerr << "LatestWrite: " << "NULL" << std::endl;
+							std::cout << "LatestWrite: " << "NULL" << std::endl;
 
 						if((*iwEvent)->latestRead !=NULL)
-							std::cerr << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
+							std::cout << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
 						else
-							std::cerr << "LatestRead: " << "NULL" << std::endl;
+							std::cout << "LatestRead: " << "NULL" << std::endl;
 
-						std::cerr << std::endl;
+						std::cout << std::endl;
 
 			iwEvent++;
 		}
@@ -82,32 +107,62 @@ void CoverageBasedTesting::buildDU() {
 #endif
 
 	std::map<string, vector<Event *> >::iterator ir = trace->readSet.begin(); //key--variable
-	for (; ir != trace->readSet.end(); ir++) {
+	for (; ir != trace->readSet.end(); ++ir) {
 		map<string, vector<Event *> >::iterator iw = trace->writeSet.find(ir->first);
 		//			assert(iw != trace->writeSet.end());
 		if(iw == trace->writeSet.end())
 			continue;
-		for (unsigned k = 0; k < ir->second.size(); k++) {
+		for (unsigned k = 0; k < ir->second.size(); ++k) {
 			Event *currentRead;
 			Event *currentWrite;
 			currentRead = ir->second[k];
 			expr r = z3_ctx.int_const(currentRead->eventName.c_str());
-			if (currentRead->latestWrite == NULL) { //maybe read from initialization
-				expr w = z3_ctx.int_const("E_INIT");
-				expr def_use_order = (w < r);
-				for (unsigned l = 0; l < iw->second.size(); l++) {
+			if (currentRead->latestWrite == NULL) { //maybe read from initialization or other thread
+				expr initOp = z3_ctx.int_const("E_INIT");
+				expr def_use_order_tpye1 = (initOp < r);  //read from initialization
+
+				for (unsigned l = 0; l < iw->second.size(); ++l) {
 					if (currentRead->threadId == iw->second[l]->threadId) //can't read
 						continue;
 					expr otherWrite = z3_ctx.int_const(
 							iw->second[l]->eventName.c_str());
-					def_use_order = def_use_order && (r < otherWrite);
+					def_use_order_tpye1 = def_use_order_tpye1 && (r < otherWrite);
 				}
-				//build CR and insert to CRSet
-				runtimeData.DUExpr.push_back(def_use_order);
+				//build define-use pair and insert it to CRSet
+				runtimeData.DUExpr.push_back(def_use_order_tpye1);
 				runtimeData.correlativeEvent.push_back(currentRead);
-//				std::cerr << "debug1" << std::endl;
-//				std::cerr << def_use_order << std::endl;
-//				std::cerr << currentRead->toString() << std::endl;
+
+#if PRINT_DEF_USE
+				std::cout << "def_use_order_type1" << std::endl;
+				std::cout << def_use_order_tpye1 << std::endl;
+				std::cout << currentRead->toString() << std::endl;
+#endif
+
+				//read from other thread
+				for(unsigned l = 0; l < iw->second.size(); ++l){
+					if(currentRead->threadId == iw->second[l]->threadId)
+						continue;
+					currentWrite = iw->second[l];
+					expr w = z3_ctx.int_const(currentWrite->eventName.c_str());
+					expr def_use_order_type2 = (w < r);
+					for(unsigned ll = 0; ll < iw->second.size(); ++ll){
+						if(ll != l){
+							expr otherWrite =z3_ctx.int_const(iw->second[ll]->eventName.c_str());
+							def_use_order_type2 = def_use_order_type2
+									&& ((otherWrite < w) || (r < otherWrite));
+						}
+					}
+					//build define-use pair and insert it to CRSet
+					runtimeData.DUExpr.push_back(def_use_order_type2);
+					runtimeData.correlativeEvent.push_back(currentRead);
+#if PRINT_DEF_USE
+					std::cout << "def_use_order_type2" << std::endl;
+					std::cout << def_use_order_type2 << std::endl;
+					std::cout << currentRead->toString() << std::endl;
+					std::cout << currentWrite->toString() << std::endl;
+#endif
+				}
+
 #if DEBUG
 				DefineUse* du = new DefineUse;
 				du->pre = NULL;
@@ -116,31 +171,34 @@ void CoverageBasedTesting::buildDU() {
 //				du->flag = false;
 				runtimeData.DUInfo.push_back(du);
 #endif
+
 			} else {
-				for (unsigned j = 0; j < iw->second.size(); j++) {
-					currentWrite = iw->second[j];
+				for (unsigned l = 0; l < iw->second.size(); ++l) {
+					currentWrite = iw->second[l];
 					if (currentRead->threadId == currentWrite->threadId
 							&& currentRead->latestWrite != currentWrite) { //can't read
 						continue;
 					}
 					expr w = z3_ctx.int_const(currentWrite->eventName.c_str());
 					expr def_use_order = (w < r);
-					for (unsigned l = 0; l < iw->second.size(); l++) {
-						if (l == j)
+					for (unsigned ll = 0; ll < iw->second.size(); ++ll) {
+						if (ll == l)
 							continue;
 						expr otherWrite = z3_ctx.int_const(
-								iw->second[l]->eventName.c_str());
+								iw->second[ll]->eventName.c_str());
 						expr tmp = (otherWrite < w || r < otherWrite);
 						def_use_order = def_use_order && tmp;
 					}
 					//build CR and insert to CRSet
 					runtimeData.correlativeEvent.push_back(currentRead);
 					runtimeData.DUExpr.push_back(def_use_order);
-//					std::cerr << "debug2" << std::endl;
-//					std::cerr << def_use_order << std::endl;
-//					std::cerr << currentWrite->toString() << std::endl;
-//					std::cerr << currentRead->toString() << std::endl;
-					//use to debug
+#if PRINT_DEF_USE
+					std::cout << "debug2" << std::endl;
+					std::cout << def_use_order << std::endl;
+					std::cout << currentWrite->toString() << std::endl;
+					std::cout << currentRead->toString() << std::endl;
+#endif
+
 #if DEBUG
 					DefineUse* du = new DefineUse;
 					du->pre = currentWrite;
@@ -157,58 +215,73 @@ void CoverageBasedTesting::buildMAP() {
 	//TODO:add this after testing MCP and DU
 
 	// 4 kinds of CR(见shanlu论文):(1)R-W-R;(2)W-W-R;(3)R-W-W;(4)W-R-W
-	std::cerr << "Build Multiple Define-Use Pairs" << std::endl;
-	std::cerr << "read set size:" << trace->readSet.size() << std::endl;
-	std::cerr << "write set size:" << trace->writeSet.size() << std::endl;
+	std::cout << "Build Multiple Define-Use Pairs" << std::endl;
+	std::cout << "read set size:" << trace->readSet.size() << std::endl;
+	std::cout << "write set size:" << trace->writeSet.size() << std::endl;
+
+#if PRINT_OPERATION_SET_DETAILED
+	std::cout << "print readSet(detailed):" << std::endl;
+	printOpSet(trace->readSet);
+	std::cout << "print writeSet(detailed):" << std::endl;
+	printOpSet(trace->writeSet);
+#endif
+
+#if PRINT_OPERATION_SET_BRIEFLY
+	std::cout << "print readSet(briefly):" << std::endl;
+	printOpSetBriefly(trace->readSet);
+	std::cout << "print writeSet(briefly):" << std::endl;
+	printOpSetBriefly(trace->writeSet);
+#endif
+
 	assert(trace->readSet.size() != 0 && "readSet is empty");
 
 	sortGlobalSet(trace->readSet);
 	sortGlobalSet(trace->writeSet);
 	markLatestReadOrWriteForGlobalVar();
 
-#if !DEBUG
+#if DEBUG
 	std::map<string, vector<Event *> >::iterator iRead = trace->readSet.begin();
 	std::map<string, vector<Event *> >::iterator iWrite = trace->writeSet.begin();
 	while(iRead != trace->readSet.end()){
-		std::cerr << "read event:" << iRead->first << std::endl;
+		std::cout << "read event:" << iRead->first << std::endl;
 		std::vector<Event*>::iterator irEvent = iRead->second.begin();
 		while(irEvent != iRead->second.end()){
-			std::cerr << (*irEvent)->toString() << std::endl;
+			std::cout << (*irEvent)->toString() << std::endl;
 			if((*irEvent)->latestWrite != NULL)
-				std::cerr << "LatestWrite: " << (*irEvent)->latestWrite->eventId << " ;" << (*irEvent)->latestWrite->eventName << std::endl;
+				std::cout << "LatestWrite: " << (*irEvent)->latestWrite->eventId << " ;" << (*irEvent)->latestWrite->eventName << std::endl;
 			else
-				std::cerr << "LatestWrite: " << "NULL" << std::endl;
+				std::cout << "LatestWrite: " << "NULL" << std::endl;
 
 			if((*irEvent)->latestRead !=NULL)
-				std::cerr << "LatestRead: " << (*irEvent)->latestRead->eventId << " ;" << (*irEvent)->latestRead->eventName << std::endl;
+				std::cout << "LatestRead: " << (*irEvent)->latestRead->eventId << " ;" << (*irEvent)->latestRead->eventName << std::endl;
 			else
-				std::cerr << "LatestRead: " << "NULL" << std::endl;
+				std::cout << "LatestRead: " << "NULL" << std::endl;
 
-			std::cerr << std::endl;
+			std::cout << std::endl;
 			irEvent++;
 		}
 		iRead++;
 	}
 
 	while(iWrite != trace->writeSet.end()){
-		std::cerr << "write event:" << iWrite->first << std::endl;
+		std::cout << "write event:" << iWrite->first << std::endl;
 		std::vector<Event*>::iterator iwEvent = iWrite->second.begin();
 		while(iwEvent != iWrite->second.end()){
-			std::cerr << (*iwEvent)->toString() << std::endl;
-//			std::cerr << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
-//			std::cerr << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
+			std::cout << (*iwEvent)->toString() << std::endl;
+//			std::cout << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
+//			std::cout << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
 
 			if((*iwEvent)->latestWrite != NULL)
-							std::cerr << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
+							std::cout << "LatestWrite: " << (*iwEvent)->latestWrite->eventId << " ;" << (*iwEvent)->latestWrite->eventName << std::endl;
 						else
-							std::cerr << "LatestWrite: " << "NULL" << std::endl;
+							std::cout << "LatestWrite: " << "NULL" << std::endl;
 
 						if((*iwEvent)->latestRead !=NULL)
-							std::cerr << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
+							std::cout << "LatestRead: " << (*iwEvent)->latestRead->eventId << " ;" << (*iwEvent)->latestRead->eventName << std::endl;
 						else
-							std::cerr << "LatestRead: " << "NULL" << std::endl;
+							std::cout << "LatestRead: " << "NULL" << std::endl;
 
-						std::cerr << std::endl;
+						std::cout << std::endl;
 
 			iwEvent++;
 		}
@@ -227,7 +300,7 @@ void CoverageBasedTesting::buildMAP() {
 //	(1)R-W-R; (2)W-W-R; (3)R-W-W; (4)W-R-W
 //	由于3,4均存在1,2的等价情况，所以不予构建
 	while(iread != trace->readSet.end()){
-		std::cerr << "var name: " << iread->first << std::endl;
+		std::cout << "var name: " << iread->first << std::endl;
 		iwrite = trace->writeSet.find(iread->first);
 		if(iwrite == trace->writeSet.end()){
 			++iread;
@@ -257,7 +330,7 @@ void CoverageBasedTesting::buildMAP() {
 		}
 		++iread;
 	}
-	std::cerr << "Build Multiple Define-Use Pairs ,OK." << std::endl;
+	std::cout << "Build Multiple Define-Use Pairs ,OK." << std::endl;
 }
 
 void CoverageBasedTesting::makeFullExprForRWR(std::map<string, std::vector<Event*> >::iterator iwrite,
@@ -272,17 +345,17 @@ void CoverageBasedTesting::makeFullExprForRWR(std::map<string, std::vector<Event
 			mulAccessPoint->pre = (*irEvent)->latestRead;
 			mulAccessPoint->mid = *iwEvent;
 			mulAccessPoint->post = *irEvent;
-			std::cerr <<"full constrain: " << full << std::endl;
-			std::cerr <<"pre: " << mulAccessPoint->pre->toString() << std::endl;
-			std::cerr <<"mid: " << mulAccessPoint->mid->toString() << std::endl;
-			std::cerr <<"post: " << mulAccessPoint->post->toString() << std::endl;
+			std::cout <<"full constrain: " << full << std::endl;
+			std::cout <<"pre: " << mulAccessPoint->pre->toString() << std::endl;
+			std::cout <<"mid: " << mulAccessPoint->mid->toString() << std::endl;
+			std::cout <<"post: " << mulAccessPoint->post->toString() << std::endl;
 #endif
 
 			expr pre = z3_ctx.int_const((*irEvent)->latestRead->eventName.c_str());
 			expr mid = z3_ctx.int_const((*iwEvent)->eventName.c_str());
 			expr post = z3_ctx.int_const((*irEvent)->eventName.c_str());
 			expr full = (pre < mid) && (mid < post);
-			std::cerr << "full constraint:" << full << std::endl;
+			std::cout << "full constraint:" << full << std::endl;
 
 			std::vector<Event*>::iterator ivec = (*iwrite).second.begin();
 			while(ivec != (*iwrite).second.end()) {
@@ -315,7 +388,7 @@ void CoverageBasedTesting::makeFullExprForWWR(std::map<string, std::vector<Event
 			expr mid = z3_ctx.int_const((*iwEvent)->eventName.c_str());
 			expr post = z3_ctx.int_const((*irEvent)->eventName.c_str());
 			expr full = (pre < mid) && (mid < post);
-			std::cerr << "full constraint:" << full << std::endl;
+			std::cout << "full constraint:" << full << std::endl;
 
 			std::vector<Event*>::iterator ivec = (*iwrite).second.begin();
 			while(ivec != (*iwrite).second.end()) {
@@ -359,7 +432,7 @@ void CoverageBasedTesting::buildSP() {
 					synchronizePair = synchronizePair
 							&& (otherUnlock < oneLock || twoUnlock < otherLock);
 				}
-				//
+
 				runtimeData.SPExpr.push_back(synchronizePair);
 #if DEBUG
 				SP* sp = new SP;
@@ -459,7 +532,7 @@ void CoverageBasedTesting::nonCR(){
 	try {
 		result = z3_solver.check();
 	} catch (z3::exception & ex) {
-		std::cerr << "\n unexpected error: " << ex << std::endl;
+		std::cout << "\n unexpected error: " << ex << std::endl;
 		return;
 	}
 
@@ -470,25 +543,25 @@ void CoverageBasedTesting::nonCR(){
 		runtimeData.addScheduleSet(prefix);
 		z3_solver.pop();
 	}else {
-		std::cerr << "\n unexpected error11111111111111111111111: " << std::endl;
+		std::cout << "\n unexpected error11111111111111111111111: " << std::endl;
 	}
 }
 void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec, std::vector<Event*>& correlativeEvent) {
-	std::cerr << "Create New Prefix, Cover Single CR" << std::endl;
-	std::cerr << "cr set size: " << exprVec.size() << std::endl;
-	std::cerr << "du set size: " << correlativeEvent.size() << std::endl;
+	std::cout << "Create New Prefix, Cover Single CR" << std::endl;
+	std::cout << "cr set size: " << exprVec.size() << std::endl;
+	std::cout << "du set size: " << correlativeEvent.size() << std::endl;
 	std::vector<expr>::iterator it = exprVec.begin();
 
 	std::vector<Event*>::iterator iCorEvent = correlativeEvent.begin();
 
 	while (it != exprVec.end()) {
-		std::cerr << "the Def-Use constraint:" << std::endl;
-		std::cerr << *it << "\n" << std::endl;
-//		std::cerr << (*itDU)->pre->eventName << "  " << (*itDU)->pre->toString() << std::endl;
-//		std::cerr << (*itDU)->post->eventName << "  " << (*itDU)->post->toString() << std::endl;
+		std::cout << "the Def-Use constraint:" << std::endl;
+		std::cout << *it << "\n" << std::endl;
+//		std::cout << (*itDU)->pre->eventName << "  " << (*itDU)->pre->toString() << std::endl;
+//		std::cout << (*itDU)->post->eventName << "  " << (*itDU)->post->toString() << std::endl;
 
-//		std::cerr << (*itDU)->pre->eventName << "  " << (*itDU)->pre->inst->info->id << std::endl;
-//		std::cerr << (*itDU)->post->eventName << "  " << (*itDU)->post->inst->info->id << std::endl;
+//		std::cout << (*itDU)->pre->eventName << "  " << (*itDU)->pre->inst->info->id << std::endl;
+//		std::cout << (*itDU)->post->eventName << "  " << (*itDU)->post->inst->info->id << std::endl;
 		z3_solver.push();
 		z3_solver.add(*it);
 
@@ -496,7 +569,7 @@ void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec, std::vector<Even
 		try {
 			result = z3_solver.check();
 		} catch (z3::exception & ex) {
-			std::cerr << "\n unexpected error: " << ex << std::endl;
+			std::cout << "\n unexpected error: " << ex << std::endl;
 			continue;
 		}
 
@@ -506,14 +579,14 @@ void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec, std::vector<Even
 				generateSchedule(vecEvent);
 			}
 			catch (z3::exception& ex) {
-				std::cerr << "\n unexpected error: " << ex << std::endl;
+				std::cout << "\n unexpected error: " << ex << std::endl;
 				assert(false && "z3 exception");
 			}
 			Prefix* prefix = new Prefix(vecEvent, trace->createThreadPoint, "");
-			std::cerr <<"eventName: " << (*iCorEvent)->eventName << "  unsigned : " << (*iCorEvent)->inst->info->id << std::endl;
+			std::cout <<"eventName: " << (*iCorEvent)->eventName << "  unsigned : " << (*iCorEvent)->inst->info->id << std::endl;
 			unsigned br = (*iCorEvent)->inst->info->id;
 			prefix->setBreakEventId(br);
-//			prefix->print(std::cerr);
+//			prefix->print(std::cout);
 			runtimeData.addScheduleSet(prefix);
 			it = exprVec.erase(it);
 			iCorEvent = correlativeEvent.erase(iCorEvent);
@@ -522,22 +595,26 @@ void CoverageBasedTesting::coverSingleCR(vector<expr>& exprVec, std::vector<Even
 		}
 		it = exprVec.erase(it);
 		iCorEvent = correlativeEvent.erase(iCorEvent);
-		std::cerr << "delete\n" << std::endl;
+		std::cout << "delete\n" << std::endl;
 		z3_solver.pop();
 	}
-	std::cerr << "all done" << std::endl;
+	std::cout << "all done" << std::endl;
 	return ;
 }
 
 void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
-	std::cerr << "\n#################Create New Prefix, Cover multiple CR#################" << std::endl;
-	std::cerr << "cr set size: " << exprVec.size() << std::endl;
+	std::cout << "\n#################Create New Prefix, Cover multiple CR#################" << std::endl;
+	std::cout << "cr set size: " << exprVec.size() << std::endl;
 
 	std::vector<expr>::iterator it = exprVec.begin();
 	int cnt = 0;
 	while (it != exprVec.end()) {
-//		std::cerr << "the Def-Use constraint:" << std::endl;
-//		std::cerr << *it << "\n" << std::endl;
+
+#if PRINT_DEF_USE
+		std::cout << "the Def-Use constraint:" << std::endl;
+		std::cout << *it << "\n" << std::endl;
+#endif
+
 		z3_solver.push();
 		z3_solver.add(*it);
 
@@ -545,21 +622,21 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 		try {
 			result = z3_solver.check();
 		} catch (z3::exception& ex) {
-			std::cerr << "\n unexpected error: " << ex << std::endl;
+			std::cout << "\n unexpected error: " << ex << std::endl;
 			continue;
 		}
 
 		if (result == z3::sat) {
 			++cnt;
 			it = exprVec.erase(it);
-//			std::cerr << "mark\n" << std::endl;
+			std::cout << "mark&&delete\n" << std::endl;
 		}else{
 			if(cnt == 0){
 				it = exprVec.erase(it);
-//				std::cerr << "delete\n" << std::endl;
+				std::cout << "delete\n" << std::endl;
 			} else{
 				it++;
-//				std::cerr << "nothing\n" << std::endl;
+				std::cout << "leave for next\n" << std::endl;
 			}
 			z3_solver.pop();
 		}
@@ -575,7 +652,7 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 	try {
 		result = z3_solver.check();
 	} catch (z3::exception& ex) {
-		std::cerr << "\n unexpected error: " << ex << std::endl;
+		std::cout << "\n unexpected error: " << ex << std::endl;
 		assert(false && "first z3 exception");
 	}
 
@@ -585,7 +662,7 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 				generateSchedule(vecEvent);
 			}
 			catch (z3::exception& ex) {
-				std::cerr << "\n unexpected error: " << ex << std::endl;
+				std::cout << "\n unexpected error: " << ex << std::endl;
 				assert(false && "second z3 exception");
 			}
 			Prefix* prefix = new Prefix(vecEvent, trace->createThreadPoint, "");
@@ -599,7 +676,7 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 //		generateSchedule(vecEvent);
 //	}
 //	catch (z3::exception& ex) {
-//		std::cerr << "\n unexpected error: " << ex << std::endl;
+//		std::cout << "\n unexpected error: " << ex << std::endl;
 //		assert(false && "z3 exception");
 //	}
 //	Prefix* prefix = new Prefix(vecEvent, trace->createThreadPoint, "");
@@ -610,17 +687,17 @@ void CoverageBasedTesting::coverMultipleCR(vector<expr>& exprVec) {
 		--cnt;
 	}
 
-	std::cerr << "all done" << std::endl;
+	std::cout << "all done" << std::endl;
 	return ;
 }
 
 void CoverageBasedTesting::addAllCR(vector<expr>& exprVec){
-	std::cerr << "\n#################add all CR, Create New Prefix, Cover multiple CR#################" << std::endl;
-	std::cerr << "cr set size: " << exprVec.size() << std::endl;
+	std::cout << "\n#################add all CR, Create New Prefix, Cover multiple CR#################" << std::endl;
+	std::cout << "cr set size: " << exprVec.size() << std::endl;
 
 	std::vector<expr>::iterator it = exprVec.begin();
 	while (it != exprVec.end()) {
-		std::cerr << *it << "\n" << std::endl;
+		std::cout << *it << "\n" << std::endl;
 		z3_solver.push();
 		z3_solver.add(*it);
 		it++;
@@ -630,7 +707,7 @@ void CoverageBasedTesting::addAllCR(vector<expr>& exprVec){
 	try {
 		result = z3_solver.check();
 	} catch (z3::exception& ex) {
-		std::cerr << "\n unexpected error: " << ex << std::endl;
+		std::cout << "\n unexpected error: " << ex << std::endl;
 		assert(false && "first z3 exception");
 	}
 
@@ -639,7 +716,7 @@ void CoverageBasedTesting::addAllCR(vector<expr>& exprVec){
 		try {
 			generateSchedule(vecEvent);
 		} catch (z3::exception& ex) {
-			std::cerr << "\n unexpected error: " << ex << std::endl;
+			std::cout << "\n unexpected error: " << ex << std::endl;
 			assert(false && "second z3 exception");
 		}
 		Prefix* prefix = new Prefix(vecEvent, trace->createThreadPoint, "");
@@ -649,7 +726,7 @@ void CoverageBasedTesting::addAllCR(vector<expr>& exprVec){
 	}
 	exprVec.clear();
 
-	std::cerr << "all done" << std::endl;
+	std::cout << "all done" << std::endl;
 	return ;
 }
 
@@ -691,7 +768,7 @@ void CoverageBasedTesting::markLatestWriteForGlobalVar() { //called by buildRead
 						string curr = event->implicitGlobalVar[i];
 						string varName = curr.substr(0, curr.find('S', 0));
 						latestWriteOneThread[varName] = event;
-						std::cerr << "CallInst:" << std::endl;
+						std::cout << "CallInst:" << std::endl;
 						I->dump();
 					}
 				} else { //read
@@ -712,10 +789,8 @@ void CoverageBasedTesting::markLatestWriteForGlobalVar() { //called by buildRead
 	}
 }
 
-
-
 void CoverageBasedTesting::markLatestReadOrWriteForGlobalVar() { //called by buildReadWriteFormula
-	std::cerr << "create latest read and write!" << std::endl;
+	std::cout << "create latest read and write!" << std::endl;
 	std::map<string, std::vector<Event*> >::iterator iread = trace->readSet.begin();
 	std::map<string, std::vector<Event*> >::iterator iwrite;
 
@@ -766,7 +841,6 @@ void CoverageBasedTesting::markLatestReadOrWriteForGlobalVar() { //called by bui
 			}
 
 		}
-
 
 
 		iwEvent = (*iwrite).second.begin();
@@ -852,14 +926,14 @@ Event* CoverageBasedTesting::getCurrentEvent(){
 }
 
 void CoverageBasedTesting::selectCRSet(std::vector<expr>& sourceSet){
-	std::cerr << "\n#################Create New Prefix, Cover multiple CR#################" << std::endl;
-		std::cerr << "cr set size1: " << sourceSet.size() << std::endl;
+	std::cout << "\n#################Create New Prefix, Cover multiple CR#################" << std::endl;
+		std::cout << "cr set size1: " << sourceSet.size() << std::endl;
 
 		std::vector<expr>::iterator it = sourceSet.begin();
 		unsigned cnt = 0;
 		while (it != sourceSet.end()) {
-	//		std::cerr << "the Def-Use constraint:" << std::endl;
-	//		std::cerr << *it << "\n" << std::endl;
+	//		std::cout << "the Def-Use constraint:" << std::endl;
+	//		std::cout << *it << "\n" << std::endl;
 			z3_solver.push();
 			z3_solver.add(*it);
 
@@ -867,20 +941,20 @@ void CoverageBasedTesting::selectCRSet(std::vector<expr>& sourceSet){
 			try {
 				result = z3_solver.check();
 			} catch (z3::exception& ex) {
-				std::cerr << "\n unexpected error: " << ex << std::endl;
+				std::cout << "\n unexpected error: " << ex << std::endl;
 				continue;
 			}
 
 			if (result == z3::sat) {
 				it++;
-	//			std::cerr << "mark\n" << std::endl;
+	//			std::cout << "mark\n" << std::endl;
 			}else{
 				it = sourceSet.erase(it);
 				++cnt;
 				z3_solver.pop();
 			}
 		}
-		std::cerr << "delete " << cnt << "CR, all done" << std::endl;
+		std::cout << "delete " << cnt << "CR, all done" << std::endl;
 		return ;
 }
 
@@ -888,9 +962,37 @@ bool less_tid(const Event* lEvent, const Event* rEvent) {
 	return lEvent->threadId < rEvent->threadId;
 }
 
+#if PRINT_OPERATION_SET_DETAILED
+template <class T> struct displayVector {
+		void operator()(T e) const{
+			std::cout << e->toString() << endl;
+		}
+	};
+
+void printOpSet(std::map<std::string, std::vector<Event*> >& opSet){
+	std::map<std::string, std::vector<Event*> >::iterator im = opSet.begin();
+	for(; im != opSet.end(); ++im){
+		std::cout << "value name: " << im->first << "; size: "<< im->second.size() << std::endl;
+		for_each(im->second.begin(), im->second.end(), displayVector<Event*>());
+		std::cout << endl;
+	}
+}
+#endif
+
+#if PRINT_OPERATION_SET_BRIEFLY
+void printOpSetBriefly(std::map<std::string, std::vector<Event*> >& opSet){
+	std::map<std::string, std::vector<Event*> >::iterator im = opSet.begin();
+	for(; im != opSet.end(); ++im){
+		std::cout << "value name: " << im->first << "; size: "<< im->second.size() << std::endl;
+		std::vector<Event*>::iterator iv = im->second.begin();
+		for(; iv != im->second.end(); ++iv){
+			std::cout << (*iv)->eventName << " ->-> " <<
+					"line:" << (*iv)->inst->info->line <<
+					" ->-> thread id: " << (*iv)->threadId << std::endl;
+		}
+		std::cout << endl;
+	}
+}
+#endif
+
 } /* namespace klee */
-
-
-
-
-
