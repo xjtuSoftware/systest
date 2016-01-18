@@ -57,11 +57,14 @@ private:
 
 	void makeFullExprForRWR(std::map<string, std::vector<Event*> >::iterator, std::vector<Event*>::iterator);
 	void makeFullExprForWWR(std::map<string, std::vector<Event*> >::iterator, std::vector<Event*>::iterator);
+
+	Event* getFirstPthreadCreateEvent();
 public:
 	void buildCoverageRequirement();
 	void computeNewSchedule();
 	void setCurrentEvent(Event*);
 	Event* getCurrentEvent();
+
 };
 
 

@@ -103,9 +103,9 @@ using namespace llvm;
 using namespace klee;
 
 #define CONSTANT 0
-#define PRINT_INSTRUCTION 1
-#define PRINT_STORE_VALUE 1
-#define PRINT_LOAD_VALUE 1
+#define PRINT_INSTRUCTION 0
+#define PRINT_STORE_VALUE 0
+#define PRINT_LOAD_VALUE 0
 
 #ifdef SUPPORT_METASMT
 

@@ -16,8 +16,8 @@ using namespace z3;
 #include "Encode.h"
 #define DEBUG 0
 #define PRINT_OPERATION_SET_DETAILED 0
-#define PRINT_OPERATION_SET_BRIEFLY 1
-#define PRINT_DEF_USE 1
+#define PRINT_OPERATION_SET_BRIEFLY 0
+#define PRINT_DEF_USE 0
 namespace klee {
 
 CoverageBasedTesting::CoverageBasedTesting(RuntimeDataManager& data, unsigned crType,
@@ -106,13 +106,23 @@ void CoverageBasedTesting::buildDU() {
 	}
 #endif
 
+	Event* eFPCreate = getFirstPthreadCreateEvent();
 	std::map<string, vector<Event *> >::iterator ir = trace->readSet.begin(); //key--variable
 	for (; ir != trace->readSet.end(); ++ir) {
 		map<string, vector<Event *> >::iterator iw = trace->writeSet.find(ir->first);
 		//			assert(iw != trace->writeSet.end());
 		if(iw == trace->writeSet.end())
 			continue;
+
 		for (unsigned k = 0; k < ir->second.size(); ++k) {
+			//Tid = 1的线程，在未创建线程之前，其线程内读写操作所构造出的def-use pair是不可能触发程序bug的。
+			//因此，对于上述def-use pair不予构建，以约减之
+			if(ir->second[k]->eventId < eFPCreate->eventId)
+			{
+				std::cout << "make continue!" << ir->second[k]->toString() << std::endl;
+				std::cout << eFPCreate->toString() << std::endl;
+				continue;
+			}
 			Event *currentRead;
 			Event *currentWrite;
 			currentRead = ir->second[k];
@@ -956,6 +966,19 @@ void CoverageBasedTesting::selectCRSet(std::vector<expr>& sourceSet){
 		}
 		std::cout << "delete " << cnt << "CR, all done" << std::endl;
 		return ;
+}
+
+Event* CoverageBasedTesting::getFirstPthreadCreateEvent(){
+	Event* eFPCreate;
+	std::map<Event*, uint64_t>::iterator im = trace->createThreadPoint.begin();
+	eFPCreate = im->first;
+	while(++im != trace->createThreadPoint.end()){
+		if(im->first->eventId < eFPCreate->eventId)
+			eFPCreate = im->first;
+//		std::cout << "create event:" << im->first->toString() << std::endl;
+	}
+//	std::cout << "create event:" << eFPCreate->toString() << std::endl;
+	return eFPCreate;
 }
 
 bool less_tid(const Event* lEvent, const Event* rEvent) {
