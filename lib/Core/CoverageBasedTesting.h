@@ -2,7 +2,7 @@
  * CoverageBasedTesting.h
  *
  *  Created on: Sep 27, 2015
- *      Author: x
+ *      Author: Hank
  */
 
 #ifndef COVERAGEBASEDTESTING_H_
@@ -32,6 +32,7 @@ private:
 	unsigned coverageMode;
 	map<string, Event*> latestWriteOneThread;
 	map<string, Event*> latestReadOneThread;
+	vector<string> singleThreadEvent;
 
 	Event* currentEvent;
 
@@ -59,6 +60,8 @@ private:
 	void makeFullExprForWWR(std::map<string, std::vector<Event*> >::iterator, std::vector<Event*>::iterator);
 
 	Event* getFirstPthreadCreateEvent();
+	void printSingleThreadEvent();
+
 public:
 	void buildCoverageRequirement();
 	void computeNewSchedule();

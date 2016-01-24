@@ -966,6 +966,9 @@ void PSOListener::afterRunMethodAsMain() {
 	if (executor->isSymbolicRun == 0) {
 		if (executor->execStatus != Executor::SUCCESS) {
 			std::cout << "\n######################上述为第" << executor->executionNum << "次执行，执行有错误,放弃####################\n";
+			if(!rdManager.isCurrentTraceUntested())
+				std::cout << "success! this trace has been tested! \n" << std::endl;
+
 			std::cout << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
 //			executor->isFinished = true;
 //			assert(0 && "debug");
@@ -975,6 +978,7 @@ void PSOListener::afterRunMethodAsMain() {
 		} else if (!rdManager.isCurrentTraceUntested()){
 			rdManager.getCurrentTrace()->traceType = Trace::REDUNDANT;
 			std::cout << "\n######################上述为第" << executor->executionNum << "次执行，执行正确####################\n";
+			std::cout << "unsuccess! this trace has been tested! \n" << std::endl;
 			std::cout << "\n######################下面开始第" << executor->executionNum + 1 << "次执行####################\n";
 			cbt.computeNewSchedule();
 			getNewPrefix();

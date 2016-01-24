@@ -2,7 +2,7 @@
  * CoverageBasedTesting.cpp
  *
  *  Created on: Sep 27, 2015
- *      Author: x
+ *      Author: Hank
  */
 
 #include "CoverageBasedTesting.h"
@@ -50,6 +50,8 @@ void CoverageBasedTesting::buildDU() {
 	std::cout << "print writeSet(briefly):" << std::endl;
 	printOpSetBriefly(trace->writeSet);
 #endif
+
+	printSingleThreadEvent();
 
 	assert(trace->readSet.size() != 0 && "readSet is empty");
 	markLatestWriteForGlobalVar();
@@ -114,13 +116,16 @@ void CoverageBasedTesting::buildDU() {
 		if(iw == trace->writeSet.end())
 			continue;
 
+		if(find(singleThreadEvent.begin(), singleThreadEvent.end(), ir->first) != singleThreadEvent.end())
+			continue;
+
 		for (unsigned k = 0; k < ir->second.size(); ++k) {
 			//Tid = 1的线程，在未创建线程之前，其线程内读写操作所构造出的def-use pair是不可能触发程序bug的。
 			//因此，对于上述def-use pair不予构建，以约减之
 			if(ir->second[k]->eventId < eFPCreate->eventId)
 			{
-				std::cout << "make continue!" << ir->second[k]->toString() << std::endl;
-				std::cout << eFPCreate->toString() << std::endl;
+//				std::cout << "make continue!" << ir->second[k]->toString() << std::endl;
+//				std::cout << eFPCreate->toString() << std::endl;
 				continue;
 			}
 			Event *currentRead;
@@ -979,6 +984,47 @@ Event* CoverageBasedTesting::getFirstPthreadCreateEvent(){
 	}
 //	std::cout << "create event:" << eFPCreate->toString() << std::endl;
 	return eFPCreate;
+}
+
+void CoverageBasedTesting::printSingleThreadEvent(){
+	std::map<std::string, std::vector<Event*> >::iterator imb, ime;
+	for(imb = trace->readSet.begin(),
+			ime = trace->readSet.end(); imb != ime; ++imb){
+		std::map<std::string, std::vector<Event*> >::iterator iw;
+		iw = trace->writeSet.find((*imb).first);
+		if(iw == trace->writeSet.end())
+			continue;
+
+		std::cout << "print single thread event!" << (*imb).first << std::endl;
+
+		unsigned threadIdTmp = (*(*imb).second[0]).threadId;
+		std::vector<Event*>::iterator ivb_r, ive_r;
+		for(ivb_r = (*imb).second.begin(),
+				ive_r = (*imb).second.end(); ivb_r != ive_r; ++ivb_r){
+			std::cout <<"Read set: " << (*ivb_r)->threadId << " -> " << (*ivb_r)->eventName << std::endl;
+			if(threadIdTmp != (*ivb_r)->threadId)
+				break;
+		}
+
+		if(ivb_r != ive_r)
+			continue;
+
+		std::vector<Event*>::iterator ivb_w, ive_w;
+		for(ivb_w = (*iw).second.begin(),
+				ive_w = (*iw).second.end(); ivb_w != ive_w; ++ivb_w){
+			std::cout <<"Write set: " << (*ivb_w)->threadId << " -> " << (*ivb_w)->eventName << std::endl;
+			if(threadIdTmp != (*ivb_w)->threadId)
+				break;
+		}
+
+		if(ivb_w != ive_w)
+			continue;
+
+		std::cout << "marked!" << (*imb).first << std::endl;
+		singleThreadEvent.push_back((*imb).first);
+	}
+
+	return ;
 }
 
 bool less_tid(const Event* lEvent, const Event* rEvent) {

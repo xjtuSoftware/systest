@@ -120,8 +120,8 @@ std::string Prefix::getName(){
 	return name;
 }
 
-void Prefix::setBreakEventId(unsigned& be){
-	breakEventId = be;
+void Prefix::setBreakEventId(unsigned& eBreak){
+	breakEventId = eBreak;
 }
 
 unsigned& Prefix::getBreakEventId(){

@@ -47,7 +47,7 @@ public:
 	KInstruction* getCurrentInst();
 	std::string getName();
 
-	void setBreakEventId(unsigned& bei);
+	void setBreakEventId(unsigned& eBreak);
 	unsigned& getBreakEventId();
 };
 

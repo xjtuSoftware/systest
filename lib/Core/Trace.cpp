@@ -571,7 +571,6 @@ bool Trace::isEqual(Trace* trace) {
 		trace->createAbstract();
 	}
 
-
 	unsigned selfSize = this->abstract.size();
 	unsigned otherSize = trace->abstract.size();
 

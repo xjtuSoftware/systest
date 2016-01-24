@@ -4718,7 +4718,7 @@ void Executor::prepareSymbolicExecution() {
 			states.end(); it != ie; ++it) {
 		delete *it;
 	}
-	cerr << "符号执行" << std::endl;
+	std::cerr << "\n 符号执行" << std::endl;
 }
 
 void Executor::prepareNextExecution() {
